@@ -1,0 +1,6 @@
+[Unit]
+Description=Solar Assistant InfluxDB backup to FTP
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/sa_influx_backup_to_ftp.sh
