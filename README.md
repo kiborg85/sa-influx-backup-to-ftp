@@ -1,101 +1,98 @@
-
 # Solar Assistant InfluxDB Backup to FTP
 
-Ночной **portable** бэкап InfluxDB (Solar Assistant) → упаковка в `tar.gz` → загрузка на **FTP** через `lftp` → локальная ротация по дням.
+## English
+
+Nightly **portable** InfluxDB backup (Solar Assistant) → packed into `tar.gz` → uploaded to **FTP** via `lftp` → local day-based rotation.
 
 ---
 
-## Что делает
+### What it does
 
-- Запускает полный бэкап: `influxd backup -portable`
-- Запускает отдельный бэкап за предыдущие сутки (от полуночи до полуночи): `influxd backup -portable -start ... -end ...`
-- Упаковывает оба результата в архивы `*.tar.gz`
-- Загружает оба архива на FTP в папку по дате (`YYYY-MM-DD`)
-- Удаляет **локальные** бэкапы старше `KEEP_DAYS_LOCAL` дней
+- Runs a full backup: `influxd backup -portable`
+- Runs a separate backup for the previous day (midnight to midnight): `influxd backup -portable -start ... -end ...`
+- Packs both results into `*.tar.gz` archives
+- Uploads both archives to FTP into a date folder (`YYYY-MM-DD`)
+- Removes **local** backups older than `KEEP_DAYS_LOCAL` days
 
 ---
 
-## Структура бэкапов
+### Backup structure
 
-### Локально
+#### Local
 
-Папки создаются по дате:
+Folders are created by date:
 
 ```
-
 /var/backups/solar-assistant/influx/
 └── 2026-02-11/
-└── sa-influx-solar-assistant-20260211T031501Z-full.tar.gz
-└── sa-influx-solar-assistant-2026-02-10-daily.tar.gz
-
+    ├── sa-influx-solar-assistant-20260211T031501Z-full.tar.gz
+    └── sa-influx-solar-assistant-2026-02-10-daily.tar.gz
 ```
 
-### На FTP
+#### FTP
 
-Файлы загружаются так же по дате:
+Files are uploaded in the same date-based structure:
 
 ```
-
 <FTP_DIR>/
 └── 2026-02-11/
-└── sa-influx-solar-assistant-20260211T031501Z-full.tar.gz
-└── sa-influx-solar-assistant-2026-02-10-daily.tar.gz
+    ├── sa-influx-solar-assistant-20260211T031501Z-full.tar.gz
+    └── sa-influx-solar-assistant-2026-02-10-daily.tar.gz
+```
 
-````
-
-> ⚠️ На FTP по умолчанию **нет** ротации: файлы копятся, пока не удалить вручную или не добавить cleanup.
+> ⚠️ FTP rotation is **not** enabled by default: files accumulate until you clean them up manually or add cleanup logic.
 
 ---
 
-## Требования
+### Requirements
 
 - Linux (Debian/Ubuntu/Solar Assistant OS)
-- `influxd` доступен в системе
+- `influxd` available in the system
 - `lftp`
 
-Установить `lftp`:
+Install `lftp`:
 
 ```bash
 sudo apt update
 sudo apt install -y lftp
-````
+```
 
 ---
 
-## Установка
+### Installation
 
-### 1) Установить скрипт
+#### 1) Install the script
 
 ```bash
 sudo install -m 0755 scripts/sa_influx_backup_to_ftp.sh \
   /usr/local/bin/sa_influx_backup_to_ftp.sh
 ```
 
-### 2) Настроить параметры
+#### 2) Configure parameters
 
-Открой скрипт и заполни FTP параметры:
+Open the script and fill in FTP settings:
 
 ```bash
 sudo nano /usr/local/bin/sa_influx_backup_to_ftp.sh
 ```
 
-Минимально нужно изменить:
+Minimum required:
 
-* `FTP_HOST`
-* `FTP_USER`
-* `FTP_PASS`
-* `FTP_DIR`
+- `FTP_HOST`
+- `FTP_USER`
+- `FTP_PASS`
+- `FTP_DIR`
 
-Опционально:
+Optional:
 
-* `BACKUP_ROOT`
-* `KEEP_DAYS_LOCAL`
+- `BACKUP_ROOT`
+- `KEEP_DAYS_LOCAL`
 
 ---
 
-## Установка systemd service и timer
+### Install systemd service and timer
 
-### 1) Скопировать unit-файлы
+#### 1) Copy unit files
 
 ```bash
 sudo install -m 0644 systemd/sa-influx-backup.service \
@@ -105,7 +102,7 @@ sudo install -m 0644 systemd/sa-influx-backup.timer \
   /etc/systemd/system/sa-influx-backup.timer
 ```
 
-### 2) Включить таймер
+#### 2) Enable timer
 
 ```bash
 sudo systemctl daemon-reload
@@ -114,9 +111,9 @@ sudo systemctl enable --now sa-influx-backup.timer
 
 ---
 
-## Ручной запуск (one-shot)
+### Manual run (one-shot)
 
-Запуск сервиса вручную:
+Run the service manually:
 
 ```bash
 sudo systemctl start sa-influx-backup.service
@@ -124,21 +121,21 @@ sudo systemctl start sa-influx-backup.service
 
 ---
 
-## Проверка статуса
+### Status checks
 
-Таймер:
+Timer:
 
 ```bash
 systemctl status sa-influx-backup.timer
 ```
 
-Сервис:
+Service:
 
 ```bash
 systemctl status sa-influx-backup.service
 ```
 
-Показать планировщик:
+Show scheduler entries:
 
 ```bash
 systemctl list-timers | grep sa-influx
@@ -146,7 +143,7 @@ systemctl list-timers | grep sa-influx
 
 ---
 
-## Логи
+### Logs
 
 ```bash
 sudo journalctl -u sa-influx-backup.service -n 200 --no-pager
@@ -154,13 +151,13 @@ sudo journalctl -u sa-influx-backup.service -n 200 --no-pager
 
 ---
 
-## Расписание
+### Schedule
 
-По умолчанию (в timer-файле):
+Default (in timer file):
 
-* каждый день в **03:15**
+- every day at **03:15**
 
-Строка:
+Line:
 
 ```ini
 OnCalendar=*-*-* 03:15:00
@@ -168,35 +165,35 @@ OnCalendar=*-*-* 03:15:00
 
 ---
 
-## Ротация
+### Rotation
 
-### Локально
+#### Local
 
-Задаётся переменной:
+Configured by:
 
-* `KEEP_DAYS_LOCAL=14`
+- `KEEP_DAYS_LOCAL=14`
 
-Скрипт удаляет **каталоги дней** старше этого значения.
+The script removes **day directories** older than this value.
 
-### На FTP
+#### FTP
 
-Не реализована в этой версии.
-
----
-
-## Безопасность
-
-Сейчас пароль FTP хранится прямо в скрипте — это удобно для быстрого старта, но не идеально.
-
-Рекомендации (лучшие практики):
-
-* вынести креды в systemd `EnvironmentFile` с правами `600`
-* или использовать `.netrc` (тоже `chmod 600`)
-* по возможности перейти на **SFTP/FTPS**
+Not implemented in this version.
 
 ---
 
-## Быстрый тест без systemd
+### Security
+
+Currently, the FTP password is stored directly in the script — convenient for a quick start, but not ideal.
+
+Recommendations (best practices):
+
+- move credentials to a systemd `EnvironmentFile` with `600` permissions
+- or use `.netrc` (also `chmod 600`)
+- migrate to **SFTP/FTPS** when possible
+
+---
+
+### Quick test without systemd
 
 ```bash
 sudo /usr/local/bin/sa_influx_backup_to_ftp.sh
@@ -204,9 +201,213 @@ sudo /usr/local/bin/sa_influx_backup_to_ftp.sh
 
 ---
 
-## Лицензия
+### License
 
 MIT
 
+---
+
+## Українська
+
+Нічний **portable** бекап InfluxDB (Solar Assistant) → пакування в `tar.gz` → завантаження на **FTP** через `lftp` → локальна ротація за днями.
+
+---
+
+### Що робить
+
+- Запускає повний бекап: `influxd backup -portable`
+- Запускає окремий бекап за попередню добу (від півночі до півночі): `influxd backup -portable -start ... -end ...`
+- Пакує обидва результати в архіви `*.tar.gz`
+- Завантажує обидва архіви на FTP у папку за датою (`YYYY-MM-DD`)
+- Видаляє **локальні** бекапи старші за `KEEP_DAYS_LOCAL` днів
+
+---
+
+### Структура бекапів
+
+#### Локально
+
+Папки створюються за датою:
+
 ```
+/var/backups/solar-assistant/influx/
+└── 2026-02-11/
+    ├── sa-influx-solar-assistant-20260211T031501Z-full.tar.gz
+    └── sa-influx-solar-assistant-2026-02-10-daily.tar.gz
 ```
+
+#### На FTP
+
+Файли завантажуються так само за датою:
+
+```
+<FTP_DIR>/
+└── 2026-02-11/
+    ├── sa-influx-solar-assistant-20260211T031501Z-full.tar.gz
+    └── sa-influx-solar-assistant-2026-02-10-daily.tar.gz
+```
+
+> ⚠️ На FTP ротація за замовчуванням **не** увімкнена: файли накопичуються, доки їх не видалити вручну або не додати cleanup-логіку.
+
+---
+
+### Вимоги
+
+- Linux (Debian/Ubuntu/Solar Assistant OS)
+- `influxd` доступний у системі
+- `lftp`
+
+Встановити `lftp`:
+
+```bash
+sudo apt update
+sudo apt install -y lftp
+```
+
+---
+
+### Встановлення
+
+#### 1) Встановити скрипт
+
+```bash
+sudo install -m 0755 scripts/sa_influx_backup_to_ftp.sh \
+  /usr/local/bin/sa_influx_backup_to_ftp.sh
+```
+
+#### 2) Налаштувати параметри
+
+Відкрийте скрипт і заповніть FTP-параметри:
+
+```bash
+sudo nano /usr/local/bin/sa_influx_backup_to_ftp.sh
+```
+
+Мінімально потрібно змінити:
+
+- `FTP_HOST`
+- `FTP_USER`
+- `FTP_PASS`
+- `FTP_DIR`
+
+Опційно:
+
+- `BACKUP_ROOT`
+- `KEEP_DAYS_LOCAL`
+
+---
+
+### Встановлення systemd service і timer
+
+#### 1) Скопіювати unit-файли
+
+```bash
+sudo install -m 0644 systemd/sa-influx-backup.service \
+  /etc/systemd/system/sa-influx-backup.service
+
+sudo install -m 0644 systemd/sa-influx-backup.timer \
+  /etc/systemd/system/sa-influx-backup.timer
+```
+
+#### 2) Увімкнути таймер
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now sa-influx-backup.timer
+```
+
+---
+
+### Ручний запуск (one-shot)
+
+Запуск сервісу вручну:
+
+```bash
+sudo systemctl start sa-influx-backup.service
+```
+
+---
+
+### Перевірка статусу
+
+Таймер:
+
+```bash
+systemctl status sa-influx-backup.timer
+```
+
+Сервіс:
+
+```bash
+systemctl status sa-influx-backup.service
+```
+
+Показати планувальник:
+
+```bash
+systemctl list-timers | grep sa-influx
+```
+
+---
+
+### Логи
+
+```bash
+sudo journalctl -u sa-influx-backup.service -n 200 --no-pager
+```
+
+---
+
+### Розклад
+
+За замовчуванням (у timer-файлі):
+
+- щодня о **03:15**
+
+Рядок:
+
+```ini
+OnCalendar=*-*-* 03:15:00
+```
+
+---
+
+### Ротація
+
+#### Локально
+
+Задається змінною:
+
+- `KEEP_DAYS_LOCAL=14`
+
+Скрипт видаляє **каталоги днів**, старші за це значення.
+
+#### На FTP
+
+Не реалізовано в цій версії.
+
+---
+
+### Безпека
+
+Зараз пароль FTP зберігається прямо у скрипті — це зручно для швидкого старту, але не ідеально.
+
+Рекомендації (best practices):
+
+- винести облікові дані в systemd `EnvironmentFile` з правами `600`
+- або використовувати `.netrc` (також `chmod 600`)
+- за можливості перейти на **SFTP/FTPS**
+
+---
+
+### Швидкий тест без systemd
+
+```bash
+sudo /usr/local/bin/sa_influx_backup_to_ftp.sh
+```
+
+---
+
+### Ліцензія
+
+MIT
