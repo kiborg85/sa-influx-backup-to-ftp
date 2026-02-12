@@ -7,9 +7,10 @@
 
 ## Что делает
 
-- Запускает: `influxd backup -portable`
-- Упаковывает результат в архив `*.tar.gz`
-- Загружает архив на FTP в папку по дате (`YYYY-MM-DD`)
+- Запускает полный бэкап: `influxd backup -portable`
+- Запускает отдельный бэкап за предыдущие сутки (от полуночи до полуночи): `influxd backup -portable -start ... -end ...`
+- Упаковывает оба результата в архивы `*.tar.gz`
+- Загружает оба архива на FTP в папку по дате (`YYYY-MM-DD`)
 - Удаляет **локальные** бэкапы старше `KEEP_DAYS_LOCAL` дней
 
 ---
@@ -24,7 +25,8 @@
 
 /var/backups/solar-assistant/influx/
 └── 2026-02-11/
-└── sa-influx-solar-assistant-20260211T031501Z.tar.gz
+└── sa-influx-solar-assistant-20260211T031501Z-full.tar.gz
+└── sa-influx-solar-assistant-2026-02-10-daily.tar.gz
 
 ```
 
@@ -36,7 +38,8 @@
 
 <FTP_DIR>/
 └── 2026-02-11/
-└── sa-influx-solar-assistant-20260211T031501Z.tar.gz
+└── sa-influx-solar-assistant-20260211T031501Z-full.tar.gz
+└── sa-influx-solar-assistant-2026-02-10-daily.tar.gz
 
 ````
 
