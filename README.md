@@ -1,4 +1,4 @@
-```md
+
 # Solar Assistant InfluxDB Backup to FTP
 
 Ночной **portable** бэкап InfluxDB (Solar Assistant) → упаковка в `tar.gz` → загрузка на **FTP** через `lftp` → локальная ротация по дням.
